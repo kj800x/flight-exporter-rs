@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: flight-exporter-rs
+  namespace: home-sensors
+spec:
+  type: LoadBalancer
+  selector:
+    app: flight-exporter-rs
+  ports:
+    - name: http
+      protocol: TCP
+      port: 9100
+      targetPort: 9090

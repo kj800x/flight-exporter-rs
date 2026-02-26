@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flight-exporter-rs
+  namespace: home-sensors
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: flight-exporter-rs
+  template:
+    metadata:
+      labels:
+        app: flight-exporter-rs
+    spec:
+      imagePullSecrets:
+        - name: ghcr-kj800x
+      containers:
+        - name: flight-exporter-rs
+          image: ghcr.io/kj800x/flight-exporter-rs:commit-$SHA
+          command: ["flight-exporter-rs"]
+          env:
+            - name: FLIGHT_NUMBER
+              value: B61440
+          ports:
+            - containerPort: 9090
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 9090
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          workingDir: "/usr/src/flight-exporter-rs"
