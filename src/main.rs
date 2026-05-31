@@ -1,4 +1,4 @@
-use axum::{http::header, response::IntoResponse, routing::get, Router};
+use axum::{Router, http::header, response::IntoResponse, routing::get};
 use prometheus::{Encoder, GaugeVec, Opts, Registry, TextEncoder};
 use serde::Deserialize;
 use std::sync::Arc;
@@ -140,20 +140,47 @@ impl FlightMetrics {
 
         Self {
             speed: gauge!("flight_speed_knots", "Aircraft ground speed in knots"),
-            altitude: gauge!("flight_altitude_feet", "Aircraft barometric altitude in feet"),
-            altitude_geom: gauge!("flight_altitude_geom_feet", "Aircraft geometric (GPS) altitude in feet"),
+            altitude: gauge!(
+                "flight_altitude_feet",
+                "Aircraft barometric altitude in feet"
+            ),
+            altitude_geom: gauge!(
+                "flight_altitude_geom_feet",
+                "Aircraft geometric (GPS) altitude in feet"
+            ),
             latitude: gauge!("flight_latitude_degrees", "Aircraft latitude in degrees"),
             longitude: gauge!("flight_longitude_degrees", "Aircraft longitude in degrees"),
             track: gauge!("flight_track_degrees", "Aircraft track angle in degrees"),
-            tas: gauge!("flight_true_airspeed_knots", "Aircraft true airspeed in knots"),
-            ias: gauge!("flight_indicated_airspeed_knots", "Aircraft indicated airspeed in knots"),
+            tas: gauge!(
+                "flight_true_airspeed_knots",
+                "Aircraft true airspeed in knots"
+            ),
+            ias: gauge!(
+                "flight_indicated_airspeed_knots",
+                "Aircraft indicated airspeed in knots"
+            ),
             mach: gauge!("flight_mach_number", "Aircraft Mach number"),
             roll: gauge!("flight_roll_degrees", "Aircraft roll angle in degrees"),
-            baro_rate: gauge!("flight_vertical_rate_fpm", "Aircraft barometric vertical rate in feet per minute"),
-            geom_rate: gauge!("flight_vertical_rate_geom_fpm", "Aircraft geometric vertical rate in feet per minute"),
-            nav_altitude_mcp: gauge!("flight_nav_altitude_feet", "Aircraft selected autopilot altitude in feet"),
-            nav_heading: gauge!("flight_nav_heading_degrees", "Aircraft selected autopilot heading in degrees"),
-            nav_qnh: gauge!("flight_nav_qnh_hpa", "Aircraft altimeter setting in hectopascals"),
+            baro_rate: gauge!(
+                "flight_vertical_rate_fpm",
+                "Aircraft barometric vertical rate in feet per minute"
+            ),
+            geom_rate: gauge!(
+                "flight_vertical_rate_geom_fpm",
+                "Aircraft geometric vertical rate in feet per minute"
+            ),
+            nav_altitude_mcp: gauge!(
+                "flight_nav_altitude_feet",
+                "Aircraft selected autopilot altitude in feet"
+            ),
+            nav_heading: gauge!(
+                "flight_nav_heading_degrees",
+                "Aircraft selected autopilot heading in degrees"
+            ),
+            nav_qnh: gauge!(
+                "flight_nav_qnh_hpa",
+                "Aircraft altimeter setting in hectopascals"
+            ),
             registry,
         }
     }
@@ -183,16 +210,29 @@ impl FlightMetrics {
         set!(self.nav_qnh, ac.nav_qnh);
 
         if let Some(ref alt) = ac.alt_baro {
-            self.altitude.with_label_values(&[callsign]).set(alt.as_feet());
+            self.altitude
+                .with_label_values(&[callsign])
+                .set(alt.as_feet());
         }
     }
 
     fn clear(&self, callsign: &str) {
         let gauges: &[&GaugeVec] = &[
-            &self.speed, &self.altitude, &self.altitude_geom, &self.latitude,
-            &self.longitude, &self.track, &self.tas, &self.ias, &self.mach,
-            &self.roll, &self.baro_rate, &self.geom_rate, &self.nav_altitude_mcp,
-            &self.nav_heading, &self.nav_qnh,
+            &self.speed,
+            &self.altitude,
+            &self.altitude_geom,
+            &self.latitude,
+            &self.longitude,
+            &self.track,
+            &self.tas,
+            &self.ias,
+            &self.mach,
+            &self.roll,
+            &self.baro_rate,
+            &self.geom_rate,
+            &self.nav_altitude_mcp,
+            &self.nav_heading,
+            &self.nav_qnh,
         ];
         for g in gauges {
             let _ = g.remove_label_values(&[callsign]);
@@ -230,16 +270,17 @@ async fn poll_loop(client: reqwest::Client, callsign: String, metrics: Arc<Fligh
 
 // --- Axum handler ---
 
-async fn metrics_handler(
-    metrics: axum::extract::State<Arc<FlightMetrics>>,
-) -> impl IntoResponse {
+async fn metrics_handler(metrics: axum::extract::State<Arc<FlightMetrics>>) -> impl IntoResponse {
     let encoder = TextEncoder::new();
     let metric_families = metrics.registry.gather();
     let mut buffer = Vec::new();
     encoder.encode(&metric_families, &mut buffer).unwrap();
 
     (
-        [(header::CONTENT_TYPE, "text/plain; version=0.0.4; charset=utf-8")],
+        [(
+            header::CONTENT_TYPE,
+            "text/plain; version=0.0.4; charset=utf-8",
+        )],
         String::from_utf8(buffer).unwrap(),
     )
 }
@@ -248,8 +289,8 @@ async fn metrics_handler(
 
 #[tokio::main]
 async fn main() {
-    let flight_number = std::env::var("FLIGHT_NUMBER")
-        .expect("FLIGHT_NUMBER env var is required (e.g. UA1234)");
+    let flight_number =
+        std::env::var("FLIGHT_NUMBER").expect("FLIGHT_NUMBER env var is required (e.g. UA1234)");
 
     let callsign = iata_to_icao_callsign(&flight_number);
     eprintln!("Tracking flight {flight_number} as callsign {callsign}");
